@@ -63,6 +63,7 @@ public class ImmutableWrapperProcessor extends AbstractProcessor {
         writeSourceToFile(source, file);
     }
 
+    @SuppressWarnings("DuplicatedCode")
     private String createSource(Context context) {
         StringJoiner joiner = new StringJoiner("\n");
         context.getPackageName().ifPresent(packageName ->
@@ -74,7 +75,21 @@ public class ImmutableWrapperProcessor extends AbstractProcessor {
         joiner.add("    public " + className + "(" + parentClassName + " target) {");
         joiner.add("        this.target = target;");
         joiner.add("    }");
-        for (ExecutableElement method : context.getAllMethods()) {
+        joiner.add("    // Immutable methods");
+        for (ExecutableElement method : context.getImmutableMethods()) {
+            joiner.add("    @java.lang.Override");
+            String accessModifier = getAccessModifier(method)
+                    .map(a -> a.concat(" "))
+                    .orElse("");
+            String returnType = getReturnType(method);
+            String name = getMethodName(method);
+            String parameters = getParameters(method);
+            joiner.add("    " + accessModifier + returnType + " " + name + "(" + parameters + ") {");
+            joiner.add("        throw new UnsupportedOperationException();");
+            joiner.add("    }");
+        }
+        joiner.add("    // Other methods");
+        for (ExecutableElement method : context.getOtherMethods()) {
             joiner.add("    @java.lang.Override");
             String accessModifier = getAccessModifier(method)
                     .map(a -> a.concat(" "))
@@ -156,6 +171,9 @@ public class ImmutableWrapperProcessor extends AbstractProcessor {
         @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
         private transient Optional<String> packageNameOptional;
 
+        private transient Collection<ExecutableElement> allMethods;
+        private transient Set<ExecutableElement> immutableMethods;
+
         private Context(TypeElement domainTypeElement) {
             this.domainTypeElement = domainTypeElement;
         }
@@ -206,19 +224,36 @@ public class ImmutableWrapperProcessor extends AbstractProcessor {
             return packageNameOptional;
         }
 
-        Collection<ExecutableElement> getAllMethods() {
-            Map<String, ExecutableElement> methods = getMethods(domainTypeElement)
-                    .collect(Collectors.toMap(this::getKey, Function.identity()));
-            Optional<TypeElement> parent = getParent(domainTypeElement);
-            if (!parent.isPresent()) {
-                return methods.values();
+        Collection<ExecutableElement> getImmutableMethods() {
+            if (immutableMethods == null) {
+                immutableMethods = getAllMethods().stream()
+                        .filter(m -> m.getSimpleName().toString().startsWith("set"))
+                        .collect(Collectors.toSet());
             }
-            for (TypeElement element = parent.get(); element != null; element = getParent(element).orElse(null)) {
-                getMethods(element)
-                        .filter(executableElement -> !methods.containsKey(getKey(executableElement)))
-                        .forEach(executableElement -> methods.put(getKey(executableElement), executableElement));
+            return immutableMethods;
+        }
+
+        Collection<ExecutableElement> getOtherMethods() {
+            return getAllMethods().stream()
+                    .filter(m -> !immutableMethods.contains(m))
+                    .collect(Collectors.toList());
+        }
+
+        private Collection<ExecutableElement> getAllMethods() {
+            if (allMethods == null) {
+                Map<String, ExecutableElement> methods = getMethods(domainTypeElement)
+                        .collect(Collectors.toMap(this::getKey, Function.identity()));
+                Optional<TypeElement> parent = getParent(domainTypeElement);
+                if (parent.isPresent()) {
+                    for (TypeElement element = parent.get(); element != null; element = getParent(element).orElse(null)) {
+                        getMethods(element)
+                                .filter(executableElement -> !methods.containsKey(getKey(executableElement)))
+                                .forEach(executableElement -> methods.put(getKey(executableElement), executableElement));
+                    }
+                }
+                allMethods = methods.values();
             }
-            return methods.values();
+            return allMethods;
         }
 
         private Stream<ExecutableElement> getMethods(TypeElement typeElement) {
