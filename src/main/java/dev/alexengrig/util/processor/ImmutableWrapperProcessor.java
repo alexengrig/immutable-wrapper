@@ -100,7 +100,7 @@ public class ImmutableWrapperProcessor extends AbstractProcessor {
             joiner.add("    " + accessModifier + returnType + " " + name + "(" + parameters + ") {");
             String callPrefix = "void".equals(returnType) ? "" : "return ";
             String arguments = getArguments(method);
-            joiner.add("        " + callPrefix + "super." + name + "(" + arguments + ");");
+            joiner.add("        " + callPrefix + "target." + name + "(" + arguments + ");");
             joiner.add("    }");
         }
         joiner.add("}");
