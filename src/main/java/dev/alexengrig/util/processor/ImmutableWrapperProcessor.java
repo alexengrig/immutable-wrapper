@@ -25,7 +25,7 @@ public class ImmutableWrapperProcessor extends AbstractProcessor {
 
     private static final Class<ImmutableWrapper> ANNOTATION_TYPE = ImmutableWrapper.class;
 
-    private ImmutableWrapperSourceGenerator sourceGenerator;
+    private static final ImmutableWrapperSourceGenerator SOURCE_GENERATOR = new ImmutableWrapperSourceGenerator();
 
     // Processor
 
@@ -75,7 +75,7 @@ public class ImmutableWrapperProcessor extends AbstractProcessor {
     }
 
     private String createSource(ImmutableWrapperContext context) {
-        return sourceGenerator.generateSource(context);
+        return SOURCE_GENERATOR.generateSource(context);
     }
 
     private JavaFileObject createFile(ImmutableWrapperContext context) {
