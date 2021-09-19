@@ -1,13 +1,11 @@
 package dev.alexengrig.util.processor;
 
-import com.google.auto.service.AutoService;
 import dev.alexengrig.util.annotation.ImmutableWrapper;
 import dev.alexengrig.util.context.ImmutableWrapperContext;
 import dev.alexengrig.util.generator.ImmutableWrapperSourceGenerator;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Completion;
-import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
@@ -20,7 +18,6 @@ import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Set;
 
-@AutoService(Processor.class)
 public class ImmutableWrapperProcessor extends AbstractProcessor {
 
     private static final Class<ImmutableWrapper> ANNOTATION_TYPE = ImmutableWrapper.class;
